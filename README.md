@@ -1,5 +1,9 @@
 # fuzzyscore
 
+[![CI](https://github.com/YOUR_NAME/fuzzyscore/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_NAME/fuzzyscore/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+
 **A fuzzy-clue bass score generator for humans and AI agents.**
 
 Cold songs have no official sheet music.  What you can actually find is a
@@ -41,6 +45,8 @@ generates a synthetic cold song ("Night Walk" — chord sheet + deliberately
 imperfect MIDI with wrong chromatic tones and keyboard bleed), then runs the
 full pipeline: quantize → chord-prior snap (with edit log) → MusicXML →
 ASCII tab → audit → PDF.
+
+![Night Walk demo output — notation + TAB with rehearsal marks](docs/demo-score.png)
 
 ## CLI
 
