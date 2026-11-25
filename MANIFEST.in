@@ -1,0 +1,2 @@
+include PLAYBOOK.md LICENSE README.md
+recursive-include examples *

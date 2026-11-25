@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.egg-info/
+vendor/
+demo-out/
+tests/out_*
+.pylibs/
