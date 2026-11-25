@@ -20,7 +20,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Unit tests
         run: PYTHONPATH=src python -m unittest discover -s tests -v
-      - name: Demo end-to-end (no lilypond: PDF step must skip gracefully)
+      - name: Demo end-to-end (PDF step skips without lilypond)
         run: PYTHONPATH=src python -m fuzzyscore.cli demo "$RUNNER_TEMP/demo"
       - name: Audit demo output
         run: PYTHONPATH=src python -m fuzzyscore.cli audit "$RUNNER_TEMP/demo/night-walk.musicxml"
