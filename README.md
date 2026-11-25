@@ -1,6 +1,6 @@
 # fuzzyscore
 
-[![CI](https://github.com/YOUR_NAME/fuzzyscore/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_NAME/fuzzyscore/actions/workflows/ci.yml)
+[![CI](https://github.com/AaroneZhang/fuzzyscore/actions/workflows/ci.yml/badge.svg)](https://github.com/AaroneZhang/fuzzyscore/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 
