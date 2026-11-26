@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-11-26
+
+- `texttab` now carries a tie across the bar line instead of re-attacking the
+  note at the start of the next bar (regression test added; 24 tests).
+
 ## 0.1.1 — 2026-11-26
 
 Accuracy fixes for the generated score, found while auditing the demo:
@@ -18,7 +23,7 @@ Accuracy fixes for the generated score, found while auditing the demo:
   re-attacking, `<staff-tuning>` respected, drop-D low string labelled `D`.
 - `lilypond`: drop-D uses `#bass-drop-d-tuning` (raw MIDI numbers are invalid
   in `stringTunings`); add regression tests for the CLI, rests, meter changes
-  and ties (23 tests).
+  and ties (24 tests).
 - Refresh the bundled `examples/night-walk.*` outputs.
 
 ## 0.1.0 — 2026-11-25

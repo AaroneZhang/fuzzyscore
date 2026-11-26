@@ -228,6 +228,18 @@ class TestTextTabDetails(unittest.TestCase):
         self.assertIn('~-', txt)            # sustain marker in the rhythm row
         self.assertEqual(txt.count('-2'), 1)  # one attack, not two
 
+    def test_cross_bar_tie_is_not_reattacked(self):
+        S = notation.Score('TT5', 2, 'minor', beats=4, beat_type=4)
+        S.bar([('B1', 16, 't')])
+        S.bar([('B1', 16, 'T')])
+        xml = os.path.join(HERE, 'out_tt5.musicxml')
+        S.save(xml)
+        out = os.path.join(HERE, 'out_tt5.txt')
+        render_tab(xml, out)
+        txt = open(out).read()
+        self.assertEqual(txt.count('-2'), 1)   # the second bar continues, no new attack
+        self.assertIn('~-', txt)
+
 
 class TestMidiIo(unittest.TestCase):
     def test_roundtrip(self):

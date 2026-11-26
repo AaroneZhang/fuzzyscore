@@ -54,6 +54,7 @@ def parse_musicxml(path):
 
     measures = []
     beats, bt = 4, 4
+    carry = None  # sounding pitch still held from the previous bar
     for m in raw:
         tm = re.search(r'<time[^>]*>.*?<beats>(\d+)</beats>.*?'
                        r'<beat-type>(\d+)</beat-type>', m, re.S)
@@ -72,9 +73,12 @@ def parse_musicxml(path):
                 sounding = pitch_to_sounding_midi(*pm.groups()) - 12
                 # A tie stop continues the previous note; do not draw a new
                 # attack (the old tab re-articulated every tied note).
-                if ('<tie type="stop"/>' in n and not is_chord and evs
-                        and evs[-1][2][0] == 'note' and evs[-1][2][1] == sounding
-                        and evs[-1][0] + evs[-1][1] == start):
+                cont = (evs and evs[-1][2][0] == 'note'
+                        and evs[-1][2][1] == sounding
+                        and evs[-1][0] + evs[-1][1] == start)
+                if (start == 0 and carry == sounding):
+                    cont = True
+                if ('<tie type="stop"/>' in n and not is_chord and cont):
                     # Keep the tie as its own span: the grid stays blank (no
                     # re-attack) and the rhythm row marks the sustain with ~.
                     evs.append((start, dur, ('tie',)))
@@ -82,6 +86,11 @@ def parse_musicxml(path):
                     evs.append((start, dur, ('note', sounding)))
             else:
                 evs.append((start, dur, ('rest',)))
+        carry = None
+        for ev in reversed(evs):
+            if ev[2][0] == 'note':
+                carry = ev[2][1]
+                break
         measures.append({'per': per_bar, 'events': evs, 'tuning': tuning})
     words = []
     for i, m in enumerate(raw):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fuzzyscore"
-version = "0.1.1"
+version = "0.1.2"
 description = "Fuzzy-clue bass score generator: reconcile chord sheets, ASCII tabs and rough MIDI into a notation+TAB practice pack"
 readme = "README.md"
 requires-python = ">=3.9"
