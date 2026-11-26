@@ -11,45 +11,45 @@ staffMusic = {
   \tempo 4 = 120
   \time 4/4
   \mark \markup \bold "Verse"
-  r1
+  b,4 fs4 b,4 b8 r8
   fs,4 cs4 fs,4 fs8 r8
   b,4 fs4 b,4 b8 r8
   fs,4 cs4 fs,4 fs8 r8
   \mark \markup \bold "Pre-Chorus"
-  b,8 r8 fs4 b,4 r4
-  d4 a4 d4 r4
-  e4 b4 e4 r4
+  b,4 fs4 b,4 b8 r8
+  d4 a4 d4 d'8 r8
+  e4 b4 e4 e'8 r8
   a,4 e4 a,4 a8 r8
   \mark \markup \bold "Chorus"
-  cs4 gs4 cs4 r4
-  d4 a4 d4 r4
-  e4 b4 e4 r4
+  cs4 gs4 cs4 cs'8 r8
+  d4. r8 d4 d'8 r8
+  e4 b4 e4 e'8 r8
   a,4 e4 a,4 a8 r8
-  a,4 e4 a,8 a,8 r4
-  e4 b16 r8. e4 r4
+  a,4 e4 a,4 a8 r8
+  e4 b4 e4 e'8 r8
   fs,4 cs4 fs,4 fs8 r8
-  cs4 gs4 cs4 r4
+  cs4 gs4 cs4 cs'8 r8
 }
 
 tabMusic = {
   \key b \minor
   \time 4/4
-  r1
+  b,4 fs4 b,4 b8 r8
   fs,4 cs4 fs,4 fs8 r8
   b,4 fs4 b,4 b8 r8
   fs,4 cs4 fs,4 fs8 r8
-  b,8 r8 fs4 b,4 r4
-  d4 a4 d4 r4
-  e4 b4 e4 r4
+  b,4 fs4 b,4 b8 r8
+  d4 a4 d4 d'8 r8
+  e4 b4 e4 e'8 r8
   a,4 e4 a,4 a8 r8
-  cs4 gs4 cs4 r4
-  d4 a4 d4 r4
-  e4 b4 e4 r4
+  cs4 gs4 cs4 cs'8 r8
+  d4. r8 d4 d'8 r8
+  e4 b4 e4 e'8 r8
   a,4 e4 a,4 a8 r8
-  a,4 e4 a,8 a,8 r4
-  e4 b16 r8. e4 r4
+  a,4 e4 a,4 a8 r8
+  e4 b4 e4 e'8 r8
   fs,4 cs4 fs,4 fs8 r8
-  cs4 gs4 cs4 r4
+  cs4 gs4 cs4 cs'8 r8
 }
 
 \score {

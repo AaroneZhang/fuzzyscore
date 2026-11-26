@@ -41,6 +41,19 @@ def parse_musicxml(path):
             tr = attr.find('transpose')
             if tr is not None:
                 meta['octave_change'] = int(tr.findtext('octave-change') or 0)
+            sd = attr.find('staff-details')
+            if sd is not None:
+                tunes = []
+                for st in sd.findall('staff-tuning'):
+                    step = st.findtext('tuning-step')
+                    alter = int(st.findtext('tuning-alter') or 0)
+                    octv = int(st.findtext('tuning-octave'))
+                    midi = ((octv + 1) * 12
+                            + {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7,
+                               'A': 9, 'B': 11}[step] + alter)
+                    tunes.append((int(st.get('line')), midi))
+                tunes.sort()
+                meta['tuning'] = [midi - 12 for _, midi in reversed(tunes)]
         # directions: bold font-size 12 words = rehearsal marks; 15 = title; 10 = tempo/subtitle
         for d in m.findall('direction'):
             w = d.find('direction-type/words')
@@ -151,7 +164,7 @@ def score_to_ly(path, key_idx=None):
     # drop-D check via the transposition we emitted ourselves.
     lo_written = min_sounding_midi(measures)
     lo = None if lo_written is None else lo_written + 12 * meta.get('octave_change', 0)
-    drop_d = lo is not None and lo < 28
+    drop_d = (lo is not None and lo < 28) or meta.get('tuning') == [26, 33, 38, 43]
     tonic = (MINOR_TONIC if meta.get('mode') == 'minor' else MAJOR_TONIC)[meta['fifths']]
     mode = meta.get('mode') or 'major'
     tempo, subtitle = tempo_from(meta)
@@ -182,7 +195,9 @@ def score_to_ly(path, key_idx=None):
         L.extend(emit_measure(m, with_marks=False))
     L.append('}')
     L.append('')
-    tuning = "#'(26 33 38 43)" if drop_d else '#bass-tuning'
+    # LilyPond's stringTunings takes pitches, not raw MIDI numbers;
+    # bass-drop-d-tuning is the built-in DADG definition.
+    tuning = '#bass-drop-d-tuning' if drop_d else '#bass-tuning'
     L.append('\\score {')
     L.append('  \\new StaffGroup <<')
     L.append('    \\new Staff { \\clef bass \\staffMusic }')

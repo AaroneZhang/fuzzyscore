@@ -136,6 +136,14 @@ class Score:
         self._pending_word = None
         self._pending_play = 1
         self._current_meter = (beats, beat_type)
+        # low-to-high sounding MIDI of the open strings; None = standard EADG.
+        # Written into MusicXML so LilyPond and the ASCII tab can agree on
+        # drop-D even when the first bar has no low-D note.
+        self.tuning = None
+
+    def set_tuning(self, tuning):
+        self.tuning = list(tuning)
+        return self
 
     def section(self, name, play=1):
         self._pending_word = name
@@ -211,6 +219,17 @@ class Score:
         for i in range(self._pending_play):
             self._append_measure(items, w if i == 0 else None)
         self._pending_word, self._pending_play = None, 1
+        return self
+
+    def add_bar_events(self, events, word=None, bar_len=16):
+        """Append one parsed-tab bar (``parse_tab_block`` events) as a measure.
+
+        ``parse_tab_block`` returns ``('note', onset, midi)`` / ``('rest', 0,
+        dur)`` tuples, while :meth:`bar` expects ``(pitch, dur, flags)``.  Going
+        through this adapter keeps both public entry points honest instead of
+        feeding tab events to ``bar`` (which used to fail on integer flags).
+        """
+        self._finalize_bar(events, word, bar_len)
         return self
 
     # ---------------- MusicXML ----------------
@@ -324,6 +343,18 @@ class Score:
                 out.append('        <clef><sign>F</sign><line>4</line></clef>')
                 # 贝斯记谱:written = sounding + 12,声明八度移位让播放软件发出真实音高
                 out.append('        <transpose><diatonic>0</diatonic><chromatic>0</chromatic><octave-change>-1</octave-change></transpose>')
+                if self.tuning:
+                    out.append('        <staff-details>')
+                    out.append('          <staff-lines>4</staff-lines>')
+                    for line, midi in zip((1, 2, 3, 4), reversed(self.tuning)):
+                        step, alter, octv = sao_from_midi_written(midi, self.prefer)
+                        out.append(f'          <staff-tuning line="{line}">')
+                        out.append(f'            <tuning-step>{step}</tuning-step>')
+                        if alter:
+                            out.append(f'            <tuning-alter>{alter}</tuning-alter>')
+                        out.append(f'            <tuning-octave>{octv}</tuning-octave>')
+                        out.append('          </staff-tuning>')
+                    out.append('        </staff-details>')
                 out.append('      </attributes>')
                 prev_meter = cur_meter
                 # verovio stacks later directions on top: emit bottom lines first, title last

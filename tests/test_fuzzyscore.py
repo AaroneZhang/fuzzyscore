@@ -1,5 +1,7 @@
 """Tests for fuzzyscore — run with: python3 -m pytest tests/ (or unittest)."""
 import os
+import re
+import subprocess
 import sys
 import unittest
 
@@ -151,8 +153,9 @@ class TestQuantize(unittest.TestCase):
         slots = quantize.fit_grid(notes, 120.0)
         mono = quantize.collapse(slots)
         self.assertIn(0, mono)
-        self.assertNotIn(4, mono)          # C2@0.5s inside sustained B1 → dropped
-        self.assertEqual(mono[16][0], 35)  # B1@2s survives (not contained)
+        self.assertIn(4, mono)             # C2 is kept for the prior to review
+        self.assertEqual(mono[4][0], 36)
+        self.assertEqual(mono[16][0], 35)  # B1@2s survives
 
     def test_snap_to_chords(self):
         bars = [('V', 'D', 2, {2, 6, 9})]
@@ -165,6 +168,65 @@ class TestQuantize(unittest.TestCase):
         slots = {16: (35, 8, 90), 24: (35, 4, 80)}
         S = quantize.slots_to_score(slots, 'T', drop_first_bar=True)
         self.assertEqual(len(S.measures), 2)  # bar1 dropped (keyboard lead-in)
+
+
+
+class TestCli(unittest.TestCase):
+    def test_tab2score_runs(self):
+        tab = os.path.join(HERE, 'out_tt_tab_in.txt')
+        out = os.path.join(HERE, 'out_tt_tab.musicxml')
+        with open(tab, 'w') as f:
+            f.write("G|----------------|\nD|----------------|\n"
+                    "A|--------4---4---|\nE|2---2-----------|\n")
+        env = dict(os.environ)
+        env['PYTHONPATH'] = os.path.join(HERE, '..', 'src')
+        r = subprocess.run([sys.executable, '-m', 'fuzzyscore.cli',
+                            'tab2score', tab, out],
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        xml = open(out).read()
+        self.assertIn('<pitch>', xml)
+        self.assertEqual(xml.count('<measure'), 1)
+
+
+class TestTextTabDetails(unittest.TestCase):
+    def test_rests_and_meter(self):
+        S = notation.Score('TT2', 2, 'minor', beats=4, beat_type=4)
+        S.bar([(None, 16)])                 # whole-bar rest
+        S.meter(3, 4)
+        S.bar([('B1', 4), ('B1', 4), ('B1', 4)])
+        xml = os.path.join(HERE, 'out_tt2.musicxml')
+        S.save(xml)
+        out = os.path.join(HERE, 'out_tt2.txt')
+        render_tab(xml, out)
+        txt = open(out).read()
+        self.assertIn('rw', txt)            # rest gets r + duration, not a bare w
+        self.assertIn('-2', txt)            # B1 drawn as A-string fret 2
+        # mixed meter forces one bar per line: two rhythm rows, not one shared line
+        self.assertEqual(len(re.findall(r'^ R ', txt, re.M)), 2)
+
+
+    def test_drop_d_tuning_reaches_tab(self):
+        S = notation.Score('TT4', 2, 'minor', beats=4, beat_type=4)
+        S.set_tuning([26, 33, 38, 43])
+        S.bar([('D1', 16)])
+        xml = os.path.join(HERE, 'out_tt4.musicxml')
+        S.save(xml)
+        out = os.path.join(HERE, 'out_tt4.txt')
+        render_tab(xml, out)
+        txt = open(out).read()
+        self.assertIn(' D |-0', txt)       # low D drawn on the bottom (D) line
+
+    def test_tie_is_not_reattacked(self):
+        S = notation.Score('TT3', 2, 'minor', beats=4, beat_type=4)
+        S.bar([('B1', 8, 't'), ('B1', 8, 'T')])
+        xml = os.path.join(HERE, 'out_tt3.musicxml')
+        S.save(xml)
+        out = os.path.join(HERE, 'out_tt3.txt')
+        render_tab(xml, out)
+        txt = open(out).read()
+        self.assertIn('~-', txt)            # sustain marker in the rhythm row
+        self.assertEqual(txt.count('-2'), 1)  # one attack, not two
 
 
 class TestMidiIo(unittest.TestCase):
@@ -217,7 +279,7 @@ class TestLilypond(unittest.TestCase):
         S.bar([('D1', 16)])                # sounding 26 < 28 → drop D
         xml = os.path.join(HERE, 'out_dd.musicxml')
         S.save(xml)
-        self.assertIn("(26 33 38 43)", score_to_ly(xml))
+        self.assertIn('#bass-drop-d-tuning', score_to_ly(xml))
 
 
 if __name__ == '__main__':

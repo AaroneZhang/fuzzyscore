@@ -96,7 +96,7 @@ def run(out_dir):
             'bpm': 120.0, 'title': 'Night Walk (demo)', 'key': 2, 'mode': 'minor',
             'prefer': 'sharps',
             'subtitle': 'fuzzyscore demo: chord sheet as harmonic prior',
-            'low': 26, 'high': 47})())
+            'low': 26, 'high': 60, 'drop_first_bar': False})())
     finally:
         sys.argv[1:] = old
 

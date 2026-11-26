@@ -88,34 +88,35 @@ def fit_grid(notes, bpm, origin=None, window_bars=24):
     return slots
 
 
-def collapse(slots, max_dur=32):
-    """Monophonic cleanup.  -> {slot: (pitch, dur_slots, vel)}."""
+def collapse(slots, max_dur=32, low=None, high=None, report=None):
+    """Monophonic cleanup.  -> {slot: (pitch, dur_slots, vel)}.
+
+    ``low``/``high`` filter the register *before* anything else, so keyboard
+    bleed above the bass range cannot clip a real bass note's duration.  The
+    old contained-note heuristic also deleted genuinely wrong low notes (and
+    real octave doublings) before ``snap_to_chords`` could log them; it is
+    deliberately gone — the register filter plus the chord prior now own that
+    decision, visibly.
+    """
+    filtered = 0
+    if low is not None or high is not None:
+        kept = {}
+        for k, evs in slots.items():
+            keep = [(p, d, v) for p, d, v in evs
+                    if (low is None or p >= low) and (high is None or p <= high)]
+            filtered += len(evs) - len(keep)
+            if keep:
+                kept[k] = keep
+        slots = kept
     onsets = sorted(slots)
     out = {}
     for i, k in enumerate(onsets):
-        cands = slots[k]
-        # contained short events = kick residue / leakage
-        keep = []
-        for item in cands:
-            p, d, v = item
-            contained = False
-            for ok in onsets:
-                if ok >= k:
-                    break
-                for op, od, ov in slots[ok]:
-                    if od > d and ok + od >= k + d and d <= 2.1:
-                        contained = True
-                        break
-                if contained:
-                    break
-            if not contained:
-                keep.append(item)
-        if not keep:
-            continue  # every candidate was bleed inside a sustained note
-        p, d, v = min(keep, key=lambda x: x[0])  # bass takes the low note
+        p, d, v = min(slots[k], key=lambda x: x[0])  # bass takes the low note
         nxt = onsets[i + 1] if i + 1 < len(onsets) else k + d
         d = max(1, min(d, nxt - k, max_dur))
         out[k] = (p, d, v)
+    if report is not None:
+        report['register_filtered'] = filtered
     return out
 
 
@@ -156,6 +157,17 @@ def snap_to_chords(slots, chart_bars, max_bend=2):
                     cands.append(cand)
         if cands:
             newp = min(cands, key=lambda c: (abs(c - p), c))
+            prev = max((kk for kk in out if kk < k), default=None)
+            if (prev is not None and out[prev][0] == newp
+                    and prev + out[prev][1] >= k):
+                # The bend lands on the pitch already ringing: extend it
+                # instead of producing a second attack / stutter.
+                pp, pd, pv = out[prev]
+                out[prev] = (pp, max(pd, k + d - prev), pv)
+                log.append(f'bar {b + 1} slot {k}: {pc_of(p)} -> {pc_of(newp)} '
+                           f'(toward {sym}; merged into sustaining note)')
+                del out[k]
+                continue
             log.append(f'bar {b + 1} slot {k}: {pc_of(p)} -> {pc_of(newp)} (toward {sym})')
             out[k] = (newp, d, v)
         else:
@@ -168,10 +180,15 @@ def snap_to_chords(slots, chart_bars, max_bend=2):
 
 def slots_to_score(slots, title, key_fifths=2, mode='minor', tempo=120,
                    prefer='sharps', subtitle=None, sections=None,
-                   low=26, high=47, drop_first_bar=True):
+                   low=26, high=60, drop_first_bar=False):
     """Grid -> Score.  ``sections``: {bar_number(1-based): label}.  Notes
     outside [low, high] are treated as bleed and become rests; cross-bar
-    durations become ties; the final note is clipped, not spilled."""
+    durations become ties; the final note is clipped, not spilled.
+
+    ``drop_first_bar`` is opt-in: a pickup/lead-in bar is only sometimes
+    disposable, so silently deleting bar 1 deleted real music in the bundled
+    example.  Pass ``drop_first_bar=True`` only when the first bar is known to
+    be a count-in."""
     S = Score(title, key_fifths, mode, beats=4, beat_type=4, tempo=tempo,
               tempo_words=f'Tempo {tempo}', prefer=prefer, subtitle=subtitle)
     clean = {k: v for k, v in slots.items() if low <= v[0] <= high}

@@ -46,9 +46,11 @@ def cmd_tab2score(a):
                        tempo=a.tempo, tempo_words=f'Tempo {a.tempo}',
                        prefer='flats' if a.mode == 'minor' and a.key <= -1 else 'sharps')
     base = {'E': 26, 'A': 33, 'D': 38, 'G': 43} if a.drop_d else None
+    if a.drop_d:
+        S.set_tuning([26, 33, 38, 43])
     bars = notation.parse_tab_block(text, base=base)
     for b in bars:
-        S.bar(b)
+        S.add_bar_events(b)
     S.save(a.output)
     print(f'{a.output}: {len(bars)} bars')
 
@@ -70,7 +72,9 @@ def cmd_midi_grid(a):
     bpm = a.bpm or quantize.estimate_bpm(notes) or 120.0
     print(f'notes={len(notes)} span={notes[-1][1] - notes[0][0]:.1f}s bpm~{bpm}')
     slots = quantize.fit_grid(notes, bpm)
-    mono = quantize.collapse(slots)
+    mono = quantize.collapse(slots, low=a.low, high=a.high)
+    if not mono:
+        print('no notes in register'); return 1
     nbars = max(mono) // 16 + 1
     prof = quantize.bar_profile(mono, nbars)
     from .quantize import pc_of
@@ -86,7 +90,10 @@ def cmd_build(a):
         print('no notes'); return 1
     bpm = a.bpm or quantize.estimate_bpm(notes) or 120.0
     slots = quantize.fit_grid(notes, bpm)
-    mono = quantize.collapse(slots)
+    report = {}
+    mono = quantize.collapse(slots, low=a.low, high=a.high, report=report)
+    if not mono:
+        print('no notes in register'); return 1
     chart = chordchart.parse_chord_sheet(open(a.chart, encoding='utf-8').read())
     bars = chart.flat_bars()
     snapped, log = quantize.snap_to_chords(mono, bars)
@@ -94,6 +101,9 @@ def cmd_build(a):
     print(f'-- chord-prior edit log ({len(log)} edits, bpm~{bpm}) --')
     for line in log:
         print(' ', line)
+    if report.get('register_filtered'):
+        print(f'-- register cleanup: {report["register_filtered"]} out-of-range '
+              f'event(s) outside [{a.low}, {a.high}] ignored --')
     sections = {}
     for i, (sec, *_rest) in enumerate(bars):
         if i + 1 <= nbars and (not sections or list(sections.values())[-1] != sec):
@@ -101,7 +111,7 @@ def cmd_build(a):
     S = quantize.slots_to_score(snapped, a.title or 'Untitled',
                                 key_fifths=a.key, mode=a.mode, tempo=int(round(bpm)),
                                 prefer=a.prefer, subtitle=a.subtitle, sections=sections,
-                                low=a.low, high=a.high)
+                                low=a.low, high=a.high, drop_first_bar=a.drop_first_bar)
     S.save(a.output)
     print(f'{a.output}: {nbars} bars, {len(log)} prior edits')
 
@@ -164,7 +174,7 @@ def main(argv=None):
 
     q = sp('midi-grid', cmd_midi_grid)
     q.add_argument('input'); q.add_argument('--bpm', type=float)
-    q.add_argument('--low', type=int, default=26); q.add_argument('--high', type=int, default=47)
+    q.add_argument('--low', type=int, default=26); q.add_argument('--high', type=int, default=60)
 
     q = sp('build', cmd_build)
     q.add_argument('input'); q.add_argument('chart'); q.add_argument('output')
@@ -173,7 +183,9 @@ def main(argv=None):
                                                                  choices=['major', 'minor'])
     q.add_argument('--prefer', default='sharps', choices=['sharps', 'flats'])
     q.add_argument('--subtitle'); q.add_argument('--low', type=int, default=26)
-    q.add_argument('--high', type=int, default=47)
+    q.add_argument('--high', type=int, default=60)
+    q.add_argument('--drop-first-bar', action='store_true',
+                   help='first bar is a count-in and should be removed')
 
     q = sp('tab', cmd_tab)
     q.add_argument('input'); q.add_argument('output'); q.add_argument('--title')
